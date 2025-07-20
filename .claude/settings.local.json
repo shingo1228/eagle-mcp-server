@@ -26,7 +26,12 @@
       "Bash(touch:*)",
       "Bash(find:*)",
       "WebFetch(domain:modelcontextprotocol.io)",
-      "WebFetch(domain:api.eagle.cool)"
+      "WebFetch(domain:api.eagle.cool)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(git tag:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

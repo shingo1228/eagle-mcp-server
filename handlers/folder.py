@@ -1,4 +1,4 @@
-"""Folder handler for Eagle MCP Server."""
+"""Folder handler for Eagle MCP Server with CRUD operations."""
 
 import json
 from typing import Any, Dict, List
@@ -50,6 +50,65 @@ class FolderHandler(BaseHandler):
                     },
                     "required": ["folder_id"]
                 }
+            ),
+            Tool(
+                name="folder_create",
+                description="Create a new folder in Eagle library",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "folder_name": {
+                            "type": "string",
+                            "description": "Name of the new folder"
+                        },
+                        "parent_id": {
+                            "type": "string",
+                            "description": "Parent folder ID (optional)",
+                            "default": ""
+                        }
+                    },
+                    "required": ["folder_name"]
+                }
+            ),
+            Tool(
+                name="folder_update",
+                description="Update folder properties (name, description)",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "folder_id": {
+                            "type": "string",
+                            "description": "The ID of the folder to update"
+                        },
+                        "folder_name": {
+                            "type": "string",
+                            "description": "New folder name (optional)"
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "New folder description (optional)"
+                        }
+                    },
+                    "required": ["folder_id"]
+                }
+            ),
+            Tool(
+                name="folder_rename",
+                description="Rename a folder",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "folder_id": {
+                            "type": "string",
+                            "description": "The ID of the folder to rename"
+                        },
+                        "new_name": {
+                            "type": "string",
+                            "description": "New name for the folder"
+                        }
+                    },
+                    "required": ["folder_id", "new_name"]
+                }
             )
         ]
     
@@ -61,6 +120,25 @@ class FolderHandler(BaseHandler):
             return await self._search_folders(arguments["keyword"], client)
         elif name == "folder_info":
             return await self._get_folder_info(arguments["folder_id"], client)
+        elif name == "folder_create":
+            return await self._create_folder(
+                arguments["folder_name"],
+                arguments.get("parent_id", ""),
+                client
+            )
+        elif name == "folder_update":
+            return await self._update_folder(
+                arguments["folder_id"],
+                arguments.get("folder_name"),
+                arguments.get("description"),
+                client
+            )
+        elif name == "folder_rename":
+            return await self._rename_folder(
+                arguments["folder_id"],
+                arguments["new_name"],
+                client
+            )
         else:
             return self._error_response(f"Unknown folder tool: {name}")
     
@@ -166,3 +244,83 @@ class FolderHandler(BaseHandler):
             
         except Exception as e:
             return self._error_response(f"Error getting folder info: {e}")
+    
+    async def _create_folder(self, folder_name: str, parent_id: str, client: EagleClient) -> List[TextContent]:
+        """Create a new folder."""
+        try:
+            # Prepare request data
+            data = {"folderName": folder_name}
+            if parent_id:
+                data["parent"] = parent_id
+            
+            result = await client.post("/api/folder/create", data)
+            
+            if not result.get("status") == "success":
+                return self._error_response(f"Failed to create folder '{folder_name}'")
+            
+            created_folder = result.get("data", {})
+            
+            response = f"Folder created successfully:\n"
+            response += f"- Name: {created_folder.get('name', folder_name)}\n"
+            response += f"- ID: {created_folder.get('id', 'Unknown')}\n"
+            if parent_id:
+                response += f"- Parent ID: {parent_id}\n"
+            response += f"- Creation Time: {created_folder.get('modificationTime', 'Unknown')}\n"
+            
+            return self._success_response(response)
+            
+        except Exception as e:
+            return self._error_response(f"Error creating folder: {e}")
+    
+    async def _update_folder(self, folder_id: str, folder_name: str, description: str, client: EagleClient) -> List[TextContent]:
+        """Update folder properties."""
+        try:
+            # Prepare update data
+            update_data = {"id": folder_id}
+            
+            if folder_name:
+                update_data["folderName"] = folder_name
+            if description:
+                update_data["description"] = description
+            
+            if len(update_data) == 1:  # Only folder_id provided
+                return self._error_response("No update data provided (folder_name or description required)")
+            
+            result = await client.post("/api/folder/update", update_data)
+            
+            if not result.get("status") == "success":
+                return self._error_response(f"Failed to update folder '{folder_id}'")
+            
+            response = f"Folder updated successfully:\n"
+            response += f"- Folder ID: {folder_id}\n"
+            if folder_name:
+                response += f"- New Name: {folder_name}\n"
+            if description:
+                response += f"- New Description: {description}\n"
+            
+            return self._success_response(response)
+            
+        except Exception as e:
+            return self._error_response(f"Error updating folder: {e}")
+    
+    async def _rename_folder(self, folder_id: str, new_name: str, client: EagleClient) -> List[TextContent]:
+        """Rename a folder."""
+        try:
+            data = {
+                "id": folder_id,
+                "folderName": new_name
+            }
+            
+            result = await client.post("/api/folder/update", data)
+            
+            if not result.get("status") == "success":
+                return self._error_response(f"Failed to rename folder '{folder_id}'")
+            
+            response = f"Folder renamed successfully:\n"
+            response += f"- Folder ID: {folder_id}\n"
+            response += f"- New Name: {new_name}\n"
+            
+            return self._success_response(response)
+            
+        except Exception as e:
+            return self._error_response(f"Error renaming folder: {e}")

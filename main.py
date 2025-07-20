@@ -22,6 +22,7 @@ from eagle_client import EagleClient, EagleAPIError
 from handlers.folder import FolderHandler
 from handlers.item import ItemHandler
 from handlers.library import LibraryHandler
+from handlers.image import ImageHandler
 
 # Configure logging
 logging.basicConfig(level=getattr(logging, LOG_LEVEL), format=LOG_FORMAT)
@@ -39,6 +40,7 @@ class EagleMCPServer:
         self.folder_handler = FolderHandler()
         self.item_handler = ItemHandler()
         self.library_handler = LibraryHandler()
+        self.image_handler = ImageHandler()
         
         # Register handlers
         self._register_handlers()
@@ -74,6 +76,15 @@ class EagleMCPServer:
             # Add library tools
             library_tools = self.library_handler.get_tools()
             for tool in library_tools:
+                # Ensure tool is properly formed
+                if hasattr(tool, 'name'):
+                    tools.append(tool)
+                else:
+                    logger.error(f"Invalid tool without name attribute: {tool}")
+            
+            # Add image tools
+            image_tools = self.image_handler.get_tools()
+            for tool in image_tools:
                 # Ensure tool is properly formed
                 if hasattr(tool, 'name'):
                     tools.append(tool)
@@ -126,6 +137,8 @@ class EagleMCPServer:
                         return await self.item_handler.handle_call(name, arguments, client)
                     elif name.startswith("library_"):
                         return await self.library_handler.handle_call(name, arguments, client)
+                    elif name.startswith("image_") or name.startswith("thumbnail_"):
+                        return await self.image_handler.handle_call(name, arguments, client)
                     else:
                         raise ValueError(f"Unknown tool: {name}")
                         
