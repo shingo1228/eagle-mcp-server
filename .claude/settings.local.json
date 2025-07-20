@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(run.bat)",
+      "Bash(E:00Eagleeagle-mcp-serverrun.bat)",
+      "Bash(cmd /c:*)",
+      "Bash(dir:*)",
+      "Bash(ls:*)",
+      "Bash(timeout 10 uv run:*)",
+      "Bash(timeout:*)",
+      "Bash(uv show:*)",
+      "Bash(uv tree:*)",
+      "Bash(uv pip show:*)",
+      "Bash(python:*)",
+      "Bash(mkdir:*)",
+      "Bash(move debug_health_check.py debug )",
+      "Bash(move debug_listtools.py debug )",
+      "Bash(move test_all_tools.py debug )",
+      "Bash(move simple_main.py debug )",
+      "Bash(move:*)",
+      "Bash(move minimal_test.py debug )",
+      "Bash(move test_manual.py debug )",
+      "Bash(mv:*)",
+      "Bash(touch:*)",
+      "Bash(find:*)",
+      "WebFetch(domain:modelcontextprotocol.io)",
+      "WebFetch(domain:api.eagle.cool)"
+    ],
+    "deny": []
+  }
+}

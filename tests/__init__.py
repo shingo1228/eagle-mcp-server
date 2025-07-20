@@ -1,0 +1,1 @@
+"""Test package for Eagle MCP Server v2."""

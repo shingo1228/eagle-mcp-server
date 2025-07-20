@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Personal/Local files
+CLAUDE_LOCAL.md
+config.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Development artifacts
+debug/
+*.log
+
+# UV
+uv.lock
+
+# MCP Client configs (contain personal paths)
+claude_desktop_config.json
+claude_desktop_test.json
+
+# Project-specific personal files
+PROJECT_REPORT.md
+PROJECT_STATUS.md
+extra_document.md

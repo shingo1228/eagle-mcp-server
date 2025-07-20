@@ -1,0 +1,168 @@
+"""Folder handler for Eagle MCP Server."""
+
+import json
+from typing import Any, Dict, List
+
+from mcp.types import Tool, TextContent
+from eagle_client import EagleClient
+from handlers.base import BaseHandler
+
+
+class FolderHandler(BaseHandler):
+    """Handler for folder-related tools."""
+    
+    def get_tools(self) -> List[Tool]:
+        """Get folder tools."""
+        return [
+            Tool(
+                name="folder_list",
+                description="List all folders in the Eagle library",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            ),
+            Tool(
+                name="folder_search",
+                description="Search for folders by name",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "keyword": {
+                            "type": "string",
+                            "description": "Search keyword for folder name"
+                        }
+                    },
+                    "required": ["keyword"]
+                }
+            ),
+            Tool(
+                name="folder_info",
+                description="Get detailed information about a specific folder",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "folder_id": {
+                            "type": "string",
+                            "description": "The ID of the folder"
+                        }
+                    },
+                    "required": ["folder_id"]
+                }
+            )
+        ]
+    
+    async def handle_call(self, name: str, arguments: Dict[str, Any], client: EagleClient) -> List[TextContent]:
+        """Handle folder tool calls."""
+        if name == "folder_list":
+            return await self._list_folders(client)
+        elif name == "folder_search":
+            return await self._search_folders(arguments["keyword"], client)
+        elif name == "folder_info":
+            return await self._get_folder_info(arguments["folder_id"], client)
+        else:
+            return self._error_response(f"Unknown folder tool: {name}")
+    
+    async def _list_folders(self, client: EagleClient) -> List[TextContent]:
+        """List all folders."""
+        try:
+            result = await client.get("/api/folder/list")
+            
+            if not result.get("status") == "success":
+                return self._error_response("Failed to get folder list")
+            
+            folders = result.get("data", [])
+            
+            # Format response with ASCII-safe output
+            response = f"Found {len(folders)} folders:\n\n"
+            for folder in folders:
+                name = folder.get('name', 'Unknown')
+                # Convert to ASCII to avoid encoding issues
+                safe_name = name.encode('ascii', 'replace').decode('ascii')
+                response += f"- {safe_name} (ID: {folder.get('id', 'Unknown')})\n"
+            
+            return self._success_response(response)
+            
+        except Exception as e:
+            return self._error_response(f"Error listing folders: {e}")
+    
+    async def _search_folders(self, keyword: str, client: EagleClient) -> List[TextContent]:
+        """Search folders by keyword."""
+        try:
+            result = await client.get("/api/folder/list")
+            
+            if not result.get("status") == "success":
+                return self._error_response("Failed to get folder list")
+            
+            folders = result.get("data", [])
+            
+            # Filter by keyword
+            matching_folders = [
+                f for f in folders 
+                if keyword.lower() in f.get("name", "").lower()
+            ]
+            
+            if not matching_folders:
+                return self._success_response(f"No folders found matching '{keyword}'")
+            
+            # Format response with ASCII-safe output
+            response = f"Found {len(matching_folders)} folders matching '{keyword}':\n\n"
+            for folder in matching_folders:
+                name = folder.get('name', 'Unknown')
+                # Convert to ASCII to avoid encoding issues
+                safe_name = name.encode('ascii', 'replace').decode('ascii')
+                response += f"- {safe_name} (ID: {folder.get('id', 'Unknown')})\n"
+            
+            return self._success_response(response)
+            
+        except Exception as e:
+            return self._error_response(f"Error searching folders: {e}")
+    
+    async def _get_folder_info(self, folder_id: str, client: EagleClient) -> List[TextContent]:
+        """Get detailed folder information."""
+        try:
+            # Get folder details
+            result = await client.get("/api/folder/list")
+            
+            if not result.get("status") == "success":
+                return self._error_response("Failed to get folder list")
+            
+            folders = result.get("data", [])
+            folder = next((f for f in folders if f.get("id") == folder_id), None)
+            
+            if not folder:
+                return self._error_response(f"Folder with ID '{folder_id}' not found")
+            
+            # Get items in folder
+            items_result = await client.get("/api/item/list", {"folders": folder_id, "limit": 10})
+            items_count = 0
+            sample_items = []
+            
+            if items_result.get("status") == "success":
+                items = items_result.get("data", [])
+                items_count = len(items)
+                sample_items = [item.get("name", "Unknown") for item in items[:5]]
+            
+            # Format response with ASCII-safe output
+            name = folder.get('name', 'Unknown')
+            safe_name = name.encode('ascii', 'replace').decode('ascii')
+            
+            response = f"Folder Information:\n"
+            response += f"- Name: {safe_name}\n"
+            response += f"- ID: {folder.get('id', 'Unknown')}\n"
+            response += f"- Items: {items_count}\n"
+            
+            if folder.get("description"):
+                desc = folder.get('description')
+                safe_desc = desc.encode('ascii', 'replace').decode('ascii')
+                response += f"- Description: {safe_desc}\n"
+            
+            if sample_items:
+                safe_items = [item.encode('ascii', 'replace').decode('ascii') for item in sample_items]
+                response += f"- Sample items: {', '.join(safe_items)}\n"
+            
+            return self._success_response(response)
+            
+        except Exception as e:
+            return self._error_response(f"Error getting folder info: {e}")
