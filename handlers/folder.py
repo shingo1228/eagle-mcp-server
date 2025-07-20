@@ -119,14 +119,20 @@ class FolderHandler(BaseHandler):
         elif name == "folder_search":
             return await self._search_folders(arguments["keyword"], client)
         elif name == "folder_info":
+            if "folder_id" not in arguments:
+                return self._error_response("Missing required parameter: folder_id")
             return await self._get_folder_info(arguments["folder_id"], client)
         elif name == "folder_create":
+            if "folder_name" not in arguments:
+                return self._error_response("Missing required parameter: folder_name")
             return await self._create_folder(
                 arguments["folder_name"],
                 arguments.get("parent_id", ""),
                 client
             )
         elif name == "folder_update":
+            if "folder_id" not in arguments:
+                return self._error_response("Missing required parameter: folder_id")
             return await self._update_folder(
                 arguments["folder_id"],
                 arguments.get("folder_name"),
@@ -134,6 +140,10 @@ class FolderHandler(BaseHandler):
                 client
             )
         elif name == "folder_rename":
+            if "folder_id" not in arguments:
+                return self._error_response("Missing required parameter: folder_id")
+            if "new_name" not in arguments:
+                return self._error_response("Missing required parameter: new_name")
             return await self._rename_folder(
                 arguments["folder_id"],
                 arguments["new_name"],

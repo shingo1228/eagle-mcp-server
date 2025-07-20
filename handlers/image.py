@@ -92,14 +92,20 @@ class ImageHandler(BaseHandler):
     async def handle_call(self, name: str, arguments: Dict[str, Any], client: EagleClient) -> List[TextContent]:
         """Handle image tool calls."""
         if name == "image_get_base64":
+            if "item_id" not in arguments:
+                return self._error_response("Missing required parameter: item_id")
             return await self._get_image_base64(
                 arguments["item_id"],
                 arguments.get("use_thumbnail", True),
                 client
             )
         elif name == "image_get_filepath":
+            if "item_id" not in arguments:
+                return self._error_response("Missing required parameter: item_id")
             return await self._get_image_filepath(arguments["item_id"], client)
         elif name == "image_analyze_prompt":
+            if "item_id" not in arguments:
+                return self._error_response("Missing required parameter: item_id")
             return await self._analyze_image_prompt(
                 arguments["item_id"],
                 arguments.get("analysis_prompt", "Describe this image in detail"),
@@ -107,6 +113,8 @@ class ImageHandler(BaseHandler):
                 client
             )
         elif name == "thumbnail_get_base64":
+            if "item_id" not in arguments:
+                return self._error_response("Missing required parameter: item_id")
             return await self._get_thumbnail_base64(arguments["item_id"], client)
         else:
             return self._error_response(f"Unknown image tool: {name}")

@@ -152,14 +152,24 @@ class ItemHandler(BaseHandler):
         if name == "item_search":
             return await self._search_items(arguments.get("keyword"), arguments.get("limit", 10), client)
         elif name == "item_info":
+            if "item_id" not in arguments:
+                return self._error_response("Missing required parameter: item_id")
             return await self._get_item_info(arguments["item_id"], client)
         elif name == "item_move_to_folder":
+            if "item_id" not in arguments:
+                return self._error_response("Missing required parameter: item_id")
+            if "folder_id" not in arguments:
+                return self._error_response("Missing required parameter: folder_id")
             return await self._move_item_to_folder(
                 arguments["item_id"],
                 arguments["folder_id"],
                 client
             )
         elif name == "item_update_tags":
+            if "item_id" not in arguments:
+                return self._error_response("Missing required parameter: item_id")
+            if "tags" not in arguments:
+                return self._error_response("Missing required parameter: tags")
             return await self._update_item_tags(
                 arguments["item_id"],
                 arguments["tags"],
@@ -167,12 +177,18 @@ class ItemHandler(BaseHandler):
                 client
             )
         elif name == "item_rename":
+            if "item_id" not in arguments:
+                return self._error_response("Missing required parameter: item_id")
+            if "new_name" not in arguments:
+                return self._error_response("Missing required parameter: new_name")
             return await self._rename_item(
                 arguments["item_id"],
                 arguments["new_name"],
                 client
             )
         elif name == "item_update_metadata":
+            if "item_id" not in arguments:
+                return self._error_response("Missing required parameter: item_id")
             return await self._update_item_metadata(
                 arguments["item_id"],
                 arguments.get("annotation"),
@@ -180,6 +196,8 @@ class ItemHandler(BaseHandler):
                 client
             )
         elif name == "item_delete":
+            if "item_id" not in arguments:
+                return self._error_response("Missing required parameter: item_id")
             return await self._delete_item(arguments["item_id"], client)
         else:
             return self._error_response(f"Unknown item tool: {name}")
