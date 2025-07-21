@@ -34,6 +34,9 @@ class Config:
         self.default_folder_limit = int(os.getenv("DEFAULT_FOLDER_LIMIT", "100"))
         self.max_folder_limit = int(os.getenv("MAX_FOLDER_LIMIT", "1000"))
         
+        # Direct API Tools Configuration
+        self.expose_direct_api_tools = os.getenv("EXPOSE_DIRECT_API_TOOLS", "false").lower() in ("true", "1", "yes", "on")
+        
         # Paths
         self.user_data_dir = self._get_user_data_dir()
         self.cache_dir = self._get_cache_dir()
@@ -139,7 +142,8 @@ class Config:
                 "server_version": self.mcp_server_version,
                 "server_description": self.mcp_server_description,
                 "log_level": self.log_level,
-                "log_format": self.log_format
+                "log_format": self.log_format,
+                "expose_direct_api_tools": self.expose_direct_api_tools
             },
             "paths": {
                 "user_data_dir": str(self.user_data_dir),
@@ -167,3 +171,4 @@ DEFAULT_ITEM_LIMIT = config.default_item_limit
 MAX_ITEM_LIMIT = config.max_item_limit
 DEFAULT_FOLDER_LIMIT = config.default_folder_limit
 MAX_FOLDER_LIMIT = config.max_folder_limit
+EXPOSE_DIRECT_API_TOOLS = config.expose_direct_api_tools

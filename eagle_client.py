@@ -91,3 +91,35 @@ class EagleClient:
             return result.get("status") == "success"
         except Exception:
             return False
+    
+    async def direct_api_call(self, endpoint: str, method: str = "GET", 
+                             params: Optional[Dict[str, Any]] = None, 
+                             data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Direct API call helper method for low-level operations."""
+        if method.upper() == "GET":
+            return await self.get(endpoint, params)
+        elif method.upper() == "POST":
+            return await self.post(endpoint, data)
+        else:
+            raise ValueError(f"Unsupported HTTP method: {method}")
+    
+    def get_endpoint_and_method(self, tool_name: str) -> tuple[str, str]:
+        """Helper method to determine endpoint and method from Direct API tool name."""
+        if not tool_name.startswith("api_"):
+            raise ValueError(f"Not a Direct API tool name: {tool_name}")
+        
+        parts = tool_name.split('_')
+        if len(parts) != 3:
+            raise ValueError(f"Invalid Direct API tool name format: {tool_name}")
+
+        category = parts[1]
+        action = parts[2]
+
+        endpoint = f"/api/{category}/{action}"
+
+        # Based on typical REST conventions and the API doc
+        post_actions = ["create", "rename", "update", "addFromURL", "addFromURLs", "addFromPath", "addBookmark", "moveToTrash", "switch"]
+        
+        method = "POST" if action in post_actions else "GET"
+
+        return endpoint, method

@@ -79,7 +79,27 @@ MCP_SERVER_NAME = "Eagle MCP Server v2"
 MCP_SERVER_VERSION = "0.1.0"
 DEFAULT_ITEM_LIMIT = 50
 MAX_ITEM_LIMIT = 500
+EXPOSE_DIRECT_API_TOOLS = False  # Direct APIツール露出設定
 ```
+
+### Direct APIツール設定
+
+**概要**: 開発・デバッグ用の低レベルAPIツール群（17ツール）の露出を制御します。
+
+**設定方法**:
+- **本番環境**: `EXPOSE_DIRECT_API_TOOLS=false` (デフォルト) - 16の抽象化ツールのみ露出
+- **開発環境**: `EXPOSE_DIRECT_API_TOOLS=true` - 全33ツール（16抽象化 + 17Direct API + health_check）を露出
+
+**環境変数設定**:
+```bash
+# .env.local ファイルに記載
+EXPOSE_DIRECT_API_TOOLS=true
+```
+
+**利点**:
+- **ユーザビリティ**: 本番では簡潔なツールリスト
+- **開発効率**: 低レベルAPI直接アクセス可能
+- **柔軟性**: 環境に応じた設定切り替え
 
 ## 🛠️ 実装した機能
 

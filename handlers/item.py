@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 from mcp.types import Tool, TextContent
 from eagle_client import EagleClient
 from handlers.base import BaseHandler
+from utils.encoding import create_safe_summary, get_display_name, clean_response_text, format_japanese_safe
 
 
 class ItemHandler(BaseHandler):
@@ -47,24 +48,6 @@ class ItemHandler(BaseHandler):
                 }
             ),
             Tool(
-                name="item_move_to_folder",
-                description="Move item to a specific folder",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "item_id": {
-                            "type": "string",
-                            "description": "The ID of the item to move"
-                        },
-                        "folder_id": {
-                            "type": "string",
-                            "description": "The ID of the destination folder"
-                        }
-                    },
-                    "required": ["item_id", "folder_id"]
-                }
-            ),
-            Tool(
                 name="item_update_tags",
                 description="Update item tags",
                 inputSchema={
@@ -87,24 +70,6 @@ class ItemHandler(BaseHandler):
                         }
                     },
                     "required": ["item_id", "tags"]
-                }
-            ),
-            Tool(
-                name="item_rename",
-                description="Rename an item",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "item_id": {
-                            "type": "string",
-                            "description": "The ID of the item to rename"
-                        },
-                        "new_name": {
-                            "type": "string",
-                            "description": "New name for the item"
-                        }
-                    },
-                    "required": ["item_id", "new_name"]
                 }
             ),
             Tool(
@@ -155,16 +120,6 @@ class ItemHandler(BaseHandler):
             if "item_id" not in arguments:
                 return self._error_response("Missing required parameter: item_id")
             return await self._get_item_info(arguments["item_id"], client)
-        elif name == "item_move_to_folder":
-            if "item_id" not in arguments:
-                return self._error_response("Missing required parameter: item_id")
-            if "folder_id" not in arguments:
-                return self._error_response("Missing required parameter: folder_id")
-            return await self._move_item_to_folder(
-                arguments["item_id"],
-                arguments["folder_id"],
-                client
-            )
         elif name == "item_update_tags":
             if "item_id" not in arguments:
                 return self._error_response("Missing required parameter: item_id")
@@ -174,16 +129,6 @@ class ItemHandler(BaseHandler):
                 arguments["item_id"],
                 arguments["tags"],
                 arguments.get("mode", "replace"),
-                client
-            )
-        elif name == "item_rename":
-            if "item_id" not in arguments:
-                return self._error_response("Missing required parameter: item_id")
-            if "new_name" not in arguments:
-                return self._error_response("Missing required parameter: new_name")
-            return await self._rename_item(
-                arguments["item_id"],
-                arguments["new_name"],
                 client
             )
         elif name == "item_update_metadata":
@@ -211,17 +156,20 @@ class ItemHandler(BaseHandler):
                 return self._error_response("Failed to search items")
             
             items = result.get("data", [])
+            items = clean_response_text(items)
             
             if not items:
                 return self._success_response(f"No items found matching '{keyword}'")
             
-            # Format response
+            # Format response with proper Japanese text handling
             response = f"Found {len(items)} items matching '{keyword}':\n\n"
             for item in items:
-                response += f"- {item.get('name', 'Unknown')} ({item.get('ext', 'unknown')})\n"
+                name = get_display_name(item, 'Unnamed Item')
+                response += f"- {name} ({item.get('ext', 'unknown')})\n"
                 response += f"  ID: {item.get('id', 'Unknown')}\n"
                 if item.get('tags'):
-                    response += f"  Tags: {', '.join(item.get('tags', []))}\n"
+                    safe_tags = [format_japanese_safe(tag) for tag in item.get('tags', [])]
+                    response += f"  Tags: {', '.join(safe_tags)}\n"
                 response += "\n"
             
             return self._success_response(response)
@@ -262,28 +210,6 @@ class ItemHandler(BaseHandler):
             
         except Exception as e:
             return self._error_response(f"Error getting item info: {e}")
-    
-    async def _move_item_to_folder(self, item_id: str, folder_id: str, client: EagleClient) -> List[TextContent]:
-        """Move item to a specific folder."""
-        try:
-            data = {
-                "id": item_id,
-                "folders": [folder_id]
-            }
-            
-            result = await client.post("/api/item/update", data)
-            
-            if not result.get("status") == "success":
-                return self._error_response(f"Failed to move item '{item_id}' to folder '{folder_id}'")
-            
-            response = f"Item moved successfully:\n"
-            response += f"- Item ID: {item_id}\n"
-            response += f"- Destination Folder ID: {folder_id}\n"
-            
-            return self._success_response(response)
-            
-        except Exception as e:
-            return self._error_response(f"Error moving item: {e}")
     
     async def _update_item_tags(self, item_id: str, tags: List[str], mode: str, client: EagleClient) -> List[TextContent]:
         """Update item tags."""
@@ -326,28 +252,6 @@ class ItemHandler(BaseHandler):
             
         except Exception as e:
             return self._error_response(f"Error updating item tags: {e}")
-    
-    async def _rename_item(self, item_id: str, new_name: str, client: EagleClient) -> List[TextContent]:
-        """Rename an item."""
-        try:
-            data = {
-                "id": item_id,
-                "name": new_name
-            }
-            
-            result = await client.post("/api/item/update", data)
-            
-            if not result.get("status") == "success":
-                return self._error_response(f"Failed to rename item '{item_id}'")
-            
-            response = f"Item renamed successfully:\n"
-            response += f"- Item ID: {item_id}\n"
-            response += f"- New Name: {new_name}\n"
-            
-            return self._success_response(response)
-            
-        except Exception as e:
-            return self._error_response(f"Error renaming item: {e}")
     
     async def _update_item_metadata(self, item_id: str, annotation: str, star: int, client: EagleClient) -> List[TextContent]:
         """Update item metadata."""

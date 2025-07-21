@@ -17,12 +17,14 @@ from mcp.types import (
     EmbeddedResource,
 )
 
-from config import LOG_LEVEL, LOG_FORMAT, MCP_SERVER_NAME, MCP_SERVER_VERSION, MCP_SERVER_DESCRIPTION
+from config import LOG_LEVEL, LOG_FORMAT, MCP_SERVER_NAME, MCP_SERVER_VERSION, MCP_SERVER_DESCRIPTION, EXPOSE_DIRECT_API_TOOLS
 from eagle_client import EagleClient, EagleAPIError
 from handlers.folder import FolderHandler
 from handlers.item import ItemHandler
 from handlers.library import LibraryHandler
 from handlers.image import ImageHandler
+from handlers.direct_api import DirectApiHandler
+from utils.encoding import ensure_utf8_output
 
 # Configure logging
 logging.basicConfig(level=getattr(logging, LOG_LEVEL), format=LOG_FORMAT)
@@ -41,6 +43,7 @@ class EagleMCPServer:
         self.item_handler = ItemHandler()
         self.library_handler = LibraryHandler()
         self.image_handler = ImageHandler()
+        self.direct_api_handler = DirectApiHandler()
         
         # Register handlers
         self._register_handlers()
@@ -54,42 +57,24 @@ class EagleMCPServer:
         async def list_tools() -> List[Tool]:
             """List available tools."""
             tools = []
+
+            def add_tools_from_handler(handler):
+                for tool in handler.get_tools():
+                    if hasattr(tool, 'name'):
+                        tools.append(tool)
+                    else:
+                        logger.error(f"Invalid tool without name attribute: {tool}")
             
-            # Add folder tools
-            folder_tools = self.folder_handler.get_tools()
-            for tool in folder_tools:
-                # Ensure tool is properly formed
-                if hasattr(tool, 'name'):
-                    tools.append(tool)
-                else:
-                    logger.error(f"Invalid tool without name attribute: {tool}")
+            # Add tools from abstraction handlers
+            add_tools_from_handler(self.folder_handler)
+            add_tools_from_handler(self.item_handler)
+            add_tools_from_handler(self.library_handler)
+            add_tools_from_handler(self.image_handler)
             
-            # Add item tools
-            item_tools = self.item_handler.get_tools()
-            for tool in item_tools:
-                # Ensure tool is properly formed
-                if hasattr(tool, 'name'):
-                    tools.append(tool)
-                else:
-                    logger.error(f"Invalid tool without name attribute: {tool}")
-            
-            # Add library tools
-            library_tools = self.library_handler.get_tools()
-            for tool in library_tools:
-                # Ensure tool is properly formed
-                if hasattr(tool, 'name'):
-                    tools.append(tool)
-                else:
-                    logger.error(f"Invalid tool without name attribute: {tool}")
-            
-            # Add image tools
-            image_tools = self.image_handler.get_tools()
-            for tool in image_tools:
-                # Ensure tool is properly formed
-                if hasattr(tool, 'name'):
-                    tools.append(tool)
-                else:
-                    logger.error(f"Invalid tool without name attribute: {tool}")
+            # Add Direct API tools only if configured to expose them
+            if EXPOSE_DIRECT_API_TOOLS:
+                add_tools_from_handler(self.direct_api_handler)
+                logger.info("Direct API tools exposed (EXPOSE_DIRECT_API_TOOLS=true)")
             
             # Add health check tool
             health_tool = Tool(
@@ -131,7 +116,12 @@ class EagleMCPServer:
                         )]
                     
                     # Route to appropriate handler
-                    if name.startswith("folder_"):
+                    if name.startswith("api_"):
+                        # Check if Direct API tools are exposed
+                        if not EXPOSE_DIRECT_API_TOOLS:
+                            raise ValueError(f"Direct API tools are not exposed. Set EXPOSE_DIRECT_API_TOOLS=true to enable.")
+                        return await self.direct_api_handler.handle_call(name, arguments, client)
+                    elif name.startswith("folder_"):
                         return await self.folder_handler.handle_call(name, arguments, client)
                     elif name.startswith("item_"):
                         return await self.item_handler.handle_call(name, arguments, client)
@@ -185,6 +175,9 @@ class EagleMCPServer:
 
 async def main():
     """Main entry point."""
+    # Ensure proper UTF-8 output on Windows
+    ensure_utf8_output()
+    
     server = EagleMCPServer()
     await server.run()
 

@@ -2,12 +2,14 @@
 
 import base64
 import os
+import urllib.parse
 from typing import Any, Dict, List
 from pathlib import Path
 
 from mcp.types import Tool, TextContent, ImageContent
 from eagle_client import EagleClient
 from handlers.base import BaseHandler
+from utils.encoding import get_display_name, clean_response_text, format_japanese_safe
 
 
 class ImageHandler(BaseHandler):
@@ -128,6 +130,7 @@ class ImageHandler(BaseHandler):
                 return self._error_response(f"Failed to get item info for ID: {item_id}")
             
             item = item_info.get("data", {})
+            item = clean_response_text(item)
             
             if use_thumbnail:
                 # Get thumbnail path
@@ -136,9 +139,23 @@ class ImageHandler(BaseHandler):
                     return self._error_response(f"Failed to get thumbnail for ID: {item_id}")
                 
                 image_path = thumbnail_result.get("data")
+                if image_path:
+                    image_path = urllib.parse.unquote(image_path)
             else:
-                # Use full image path
-                image_path = item.get("filePath")
+                # Construct full image path from thumbnail path using actual file extension
+                thumbnail_result = await client.get("/api/item/thumbnail", {"id": item_id})
+                if thumbnail_result.get("status") == "success":
+                    thumbnail_path = urllib.parse.unquote(thumbnail_result.get("data", ""))
+                    if thumbnail_path and "_thumbnail" in thumbnail_path:
+                        # Remove _thumbnail and use actual file extension from Eagle API
+                        image_path_base = thumbnail_path.replace("_thumbnail", "")
+                        image_path_without_ext = os.path.splitext(image_path_base)[0]
+                        original_ext = item.get('ext', 'jpg')
+                        image_path = f"{image_path_without_ext}.{original_ext}"
+                    else:
+                        image_path = None
+                else:
+                    image_path = None
             
             if not image_path or not os.path.exists(image_path):
                 return self._error_response(f"Image file not found: {image_path}")
@@ -160,7 +177,8 @@ class ImageHandler(BaseHandler):
             mime_type = mime_type_map.get(file_ext, 'image/jpeg')
             
             # Format response with metadata
-            response = f"Image Base64 Data for {item.get('name', 'Unknown')}:\n\n"
+            name = get_display_name(item, 'Unnamed Image')
+            response = f"Image Base64 Data for {name}:\n\n"
             response += f"- Item ID: {item_id}\n"
             response += f"- File Type: {item.get('ext', 'unknown')}\n"
             response += f"- MIME Type: {mime_type}\n"
@@ -183,28 +201,38 @@ class ImageHandler(BaseHandler):
                 return self._error_response(f"Failed to get item info for ID: {item_id}")
             
             item = item_info.get("data", {})
-            file_path = item.get("filePath")
+            item = clean_response_text(item)
             
-            if not file_path:
+            # Get thumbnail path and construct full image path
+            thumbnail_result = await client.get("/api/item/thumbnail", {"id": item_id})
+            if not thumbnail_result.get("status") == "success":
+                return self._error_response(f"Failed to get thumbnail path for ID: {item_id}")
+            
+            thumbnail_path = urllib.parse.unquote(thumbnail_result.get("data", ""))
+            if not thumbnail_path:
                 return self._error_response(f"No file path found for item: {item_id}")
             
-            # Check if file exists
-            exists = os.path.exists(file_path)
+            # Construct full image path using the actual file extension from Eagle API
+            # Eagle always creates PNG thumbnails, but we need the original file extension
+            file_path_base = thumbnail_path.replace("_thumbnail", "") if "_thumbnail" in thumbnail_path else thumbnail_path
             
-            # Get thumbnail path as well
-            thumbnail_result = await client.get("/api/item/thumbnail", {"id": item_id})
-            thumbnail_path = None
-            if thumbnail_result.get("status") == "success":
-                thumbnail_path = thumbnail_result.get("data")
+            # Remove the thumbnail's extension and use the original file extension
+            file_path_without_ext = os.path.splitext(file_path_base)[0]
+            original_ext = item.get('ext', 'jpg')  # Get actual extension from Eagle API
+            file_path = f"{file_path_without_ext}.{original_ext}"
+            
+            # Check if files exist
+            file_exists = os.path.exists(file_path)
+            thumbnail_exists = os.path.exists(thumbnail_path)
             
             # Format response
-            response = f"Image File Paths for {item.get('name', 'Unknown')}:\n\n"
+            name = get_display_name(item, 'Unnamed Image')
+            response = f"Image File Paths for {name}:\n\n"
             response += f"- Item ID: {item_id}\n"
             response += f"- Full Image: {file_path}\n"
-            response += f"- File Exists: {'Yes' if exists else 'No'}\n"
-            if thumbnail_path:
-                response += f"- Thumbnail: {thumbnail_path}\n"
-                response += f"- Thumbnail Exists: {'Yes' if os.path.exists(thumbnail_path) else 'No'}\n"
+            response += f"- File Exists: {'Yes' if file_exists else 'No'}\n"
+            response += f"- Thumbnail: {thumbnail_path}\n"
+            response += f"- Thumbnail Exists: {'Yes' if thumbnail_exists else 'No'}\n"
             response += f"- File Size: {item.get('size', 0)} bytes\n"
             if item.get('width') and item.get('height'):
                 response += f"- Dimensions: {item.get('width')}x{item.get('height')}\n"
@@ -228,16 +256,19 @@ class ImageHandler(BaseHandler):
             item = item_info.get("data", {}) if item_info.get("status") == "success" else {}
             
             # Format analysis prompt with context
-            response = f"Image Analysis Setup for {item.get('name', 'Unknown')}:\n\n"
+            name = get_display_name(item, 'Unnamed Image')
+            response = f"Image Analysis Setup for {name}:\n\n"
             response += f"Analysis Prompt: {analysis_prompt}\n\n"
             response += f"Image Context:\n"
             response += f"- Item ID: {item_id}\n"
-            response += f"- Name: {item.get('name', 'Unknown')}\n"
+            response += f"- Name: {name}\n"
             response += f"- Type: {item.get('ext', 'unknown')}\n"
             if item.get('tags'):
-                response += f"- Current Tags: {', '.join(item.get('tags', []))}\n"
+                safe_tags = [format_japanese_safe(tag) for tag in item.get('tags', [])]
+                response += f"- Current Tags: {', '.join(safe_tags)}\n"
             if item.get('annotation'):
-                response += f"- Annotation: {item.get('annotation')}\n"
+                safe_annotation = format_japanese_safe(item.get('annotation', ''))
+                response += f"- Annotation: {safe_annotation}\n"
             
             response += f"\n{base64_result[0].text}"
             
@@ -254,7 +285,7 @@ class ImageHandler(BaseHandler):
             if not thumbnail_result.get("status") == "success":
                 return self._error_response(f"Failed to get thumbnail for ID: {item_id}")
             
-            thumbnail_path = thumbnail_result.get("data")
+            thumbnail_path = urllib.parse.unquote(thumbnail_result.get("data", ""))
             if not thumbnail_path or not os.path.exists(thumbnail_path):
                 return self._error_response(f"Thumbnail file not found: {thumbnail_path}")
             
