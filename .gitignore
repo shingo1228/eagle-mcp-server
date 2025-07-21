@@ -44,6 +44,7 @@ venv.bak/
 
 # Personal/Local files
 CLAUDE_LOCAL.md
+CLAUDE.md
 config.local.json
 
 # OS
