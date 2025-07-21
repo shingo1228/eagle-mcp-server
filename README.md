@@ -27,7 +27,7 @@ A Modern Context Protocol (MCP) server implementation for [Eagle App](https://ea
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/eagle-mcp-server.git
+git clone https://github.com/shingo1228/eagle-mcp-server.git
 cd eagle-mcp-server
 ```
 
