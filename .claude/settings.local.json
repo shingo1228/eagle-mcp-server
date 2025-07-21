@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(run.bat)",
+      "Bash(E:00Eagleeagle-mcp-serverrun.bat)",
+      "Bash(cmd /c:*)",
+      "Bash(dir:*)",
+      "Bash(ls:*)",
+      "Bash(timeout 10 uv run:*)",
+      "Bash(timeout:*)",
+      "Bash(uv show:*)",
+      "Bash(uv tree:*)",
+      "Bash(uv pip show:*)",
+      "Bash(python:*)",
+      "Bash(mkdir:*)",
+      "Bash(move debug_health_check.py debug )",
+      "Bash(move debug_listtools.py debug )",
+      "Bash(move test_all_tools.py debug )",
+      "Bash(move simple_main.py debug )",
+      "Bash(move:*)",
+      "Bash(move minimal_test.py debug )",
+      "Bash(move test_manual.py debug )",
+      "Bash(mv:*)",
+      "Bash(touch:*)",
+      "Bash(find:*)",
+      "WebFetch(domain:modelcontextprotocol.io)",
+      "WebFetch(domain:api.eagle.cool)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(git tag:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(EXPOSE_DIRECT_API_TOOLS=true uv run python -c \"\nimport asyncio\nfrom main import EagleMCPServer\n\nasync def test_tool_exposure_enabled():\n    server = EagleMCPServer()\n    \n    print(''=== Direct API Enabled Configuration ==='')\n    tools = []\n    async def mock_list_tools():\n        tools_result = []\n        \n        def add_tools_from_handler(handler):\n            for tool in handler.get_tools():\n                if hasattr(tool, ''name''):\n                    tools_result.append(tool)\n        \n        # Add abstraction tools\n        add_tools_from_handler(server.folder_handler)\n        add_tools_from_handler(server.item_handler)\n        add_tools_from_handler(server.library_handler)\n        add_tools_from_handler(server.image_handler)\n        \n        # Check configuration for Direct API\n        from config import EXPOSE_DIRECT_API_TOOLS\n        if EXPOSE_DIRECT_API_TOOLS:\n            add_tools_from_handler(server.direct_api_handler)\n            print(''Direct API tools exposed'')\n        else:\n            print(''Direct API tools hidden'')\n        \n        return tools_result\n    \n    tools = await mock_list_tools()\n    print(f''Total tools exposed: {len(tools)}'')\n    \n    # Show tool categories\n    categories = {}\n    for tool in tools:\n        if tool.name.startswith(''folder_''):\n            categories.setdefault(''Folder'', []).append(tool.name)\n        elif tool.name.startswith(''item_''):\n            categories.setdefault(''Item'', []).append(tool.name)\n        elif tool.name.startswith(''library_''):\n            categories.setdefault(''Library'', []).append(tool.name)\n        elif tool.name.startswith(''image_'') or tool.name.startswith(''thumbnail_''):\n            categories.setdefault(''Image'', []).append(tool.name)\n        elif tool.name.startswith(''api_''):\n            categories.setdefault(''Direct API'', []).append(tool.name)\n        else:\n            categories.setdefault(''Other'', []).append(tool.name)\n    \n    for category, tool_names in categories.items():\n        print(f''{category}: {len(tool_names)} tools'')\n\nasyncio.run(test_tool_exposure_enabled())\n\")",
+      "Bash(curl:*)",
+      "Bash(git rm:*)"
+    ],
+    "deny": []
+  }
+}

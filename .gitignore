@@ -65,3 +65,11 @@ claude_desktop_test.json
 PROJECT_REPORT.md
 PROJECT_STATUS.md
 extra_document.md
+
+# Intermediate/temporary documentation (development artifacts)
+EXTENSION_DEBUG_REPORT.md
+FUNCTIONAL_ARCHITECTURE.md
+HANDOVER_DOCUMENT.md
+HANDOVER_STATUS.md
+*_REPORT.md
+*_STATUS.md
