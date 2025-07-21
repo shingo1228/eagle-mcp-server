@@ -157,6 +157,41 @@ Add to your MCP configuration:
 
 When enabled, provides direct access to Eagle's REST API endpoints for advanced users and developers.
 
+## 🤖 AI Integration
+
+### System Prompts for AI Assistants
+
+To help AI assistants effectively use Eagle MCP Server, we provide comprehensive system prompts:
+
+- **[Complete System Prompt](docs/SYSTEM_PROMPT.md)** - Detailed guide with workflows and best practices
+- **[Concise System Prompt](docs/SYSTEM_PROMPT_CONCISE.md)** - Quick reference for AI integration
+- **[Japanese System Prompt](docs/SYSTEM_PROMPT.jp.md)** - 日本語版システムプロンプト
+
+These prompts include:
+- 33 tool usage patterns and workflows
+- Best practices for efficient operations
+- Error handling and user interaction guidelines
+- Response format recommendations
+- Performance optimization tips
+
+### Integration Examples
+
+```python
+# Example: AI assistant using Eagle MCP Server
+from mcp import ClientSession
+
+# 1. Always start with health check
+await session.call_tool("health_check")
+
+# 2. Discover content structure  
+library = await session.call_tool("library_info")
+folders = await session.call_tool("folder_list")
+
+# 3. Search and analyze
+items = await session.call_tool("item_search", {"keyword": "design", "limit": 10})
+image_data = await session.call_tool("image_base64", {"item_id": "abc123", "use_thumbnail": true})
+```
+
 ## 📁 Project Structure
 
 ```

@@ -157,6 +157,41 @@ MCP設定に追加します：
 
 有効化すると、上級ユーザーと開発者向けにEagleのREST APIエンドポイントへの直接アクセスを提供します。
 
+## 🤖 AI統合
+
+### AIアシスタント用システムプロンプト
+
+AIアシスタントがEagle MCP Serverを効果的に使用できるよう、包括的なシステムプロンプトを提供しています：
+
+- **[完全版システムプロンプト](docs/SYSTEM_PROMPT.jp.md)** - ワークフローとベストプラクティスの詳細ガイド
+- **[簡潔版システムプロンプト](docs/SYSTEM_PROMPT_CONCISE.md)** - AI統合用クイックリファレンス（英語）
+- **[英語版システムプロンプト](docs/SYSTEM_PROMPT.md)** - Complete English system prompt
+
+これらのプロンプトには以下が含まれます：
+- 33ツールの使用パターンとワークフロー
+- 効率的な操作のためのベストプラクティス
+- エラーハンドリングとユーザーインタラクションガイドライン
+- レスポンス形式の推奨事項
+- パフォーマンス最適化のヒント
+
+### 統合例
+
+```python
+# 例: Eagle MCP Serverを使用するAIアシスタント
+from mcp import ClientSession
+
+# 1. 常にヘルスチェックから開始
+await session.call_tool("health_check")
+
+# 2. コンテンツ構造を発見
+library = await session.call_tool("library_info")
+folders = await session.call_tool("folder_list")
+
+# 3. 検索と分析
+items = await session.call_tool("item_search", {"keyword": "デザイン", "limit": 10})
+image_data = await session.call_tool("image_base64", {"item_id": "abc123", "use_thumbnail": true})
+```
+
 ## 📁 プロジェクト構造
 
 ```
