@@ -3,13 +3,19 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![MCP Compatible](https://img.shields.io/badge/MCP-1.12.0-green.svg)](https://modelcontextprotocol.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://github.com/shingo1228/eagle-mcp-server/releases)
 
-A Modern Context Protocol (MCP) server implementation for [Eagle App](https://eagle.cool/) integration. This server enables AI assistants to interact with your Eagle library through a standardized interface.
+[🇯🇵 日本語](README.jp.md) | **English**
+
+A Modern Context Protocol (MCP) server implementation for [Eagle App](https://eagle.cool/) integration. This server enables AI assistants to interact with your Eagle library through a standardized interface with comprehensive tools and multilingual support.
 
 ## ✨ Features
 
 - **🏗️ Modern Architecture**: Pure MCP implementation built with mcp-python
-- **🛠️ Comprehensive Tools**: 7 specialized tools for complete Eagle operations
+- **🛠️ Comprehensive Tools**: 16 high-level tools + 17 direct API tools for complete Eagle operations
+- **🎛️ Configurable API Access**: Toggle between user-friendly and advanced developer tools
+- **🌏 Multilingual Support**: Enhanced Japanese text handling and UTF-8 encoding
+- **🖼️ Image Processing**: Base64 encoding, thumbnail generation, and metadata analysis
 - **🔌 Cross-platform**: Compatible with LM Studio, Claude Desktop, and other MCP clients  
 - **🛡️ Robust Error Handling**: Comprehensive error handling and logging
 - **⚡ High Performance**: Async implementation with efficient Eagle API integration
@@ -55,6 +61,13 @@ Create a `.env.local` file for local configuration:
 EAGLE_API_URL=http://localhost:41595
 EAGLE_API_TIMEOUT=30.0
 LOG_LEVEL=INFO
+
+# Tool Configuration
+EXPOSE_DIRECT_API_TOOLS=false  # Set to true for advanced API access
+
+# Optional: Custom paths
+# USER_DATA_DIR=/custom/path/to/data
+# CACHE_DIR=/custom/path/to/cache
 ```
 
 ### MCP Client Configuration
@@ -95,30 +108,76 @@ Add to your MCP configuration:
 
 ## 🛠️ Available Tools
 
+### Core Tools (Always Available)
+
 | Tool | Description | Parameters |
 |------|-------------|------------|
 | `health_check` | Check Eagle API connection status | None |
+
+### Folder Management
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
 | `folder_list` | List all folders in Eagle library | None |
 | `folder_search` | Search folders by name | `keyword` |
 | `folder_info` | Get detailed folder information | `folder_id` |
+| `folder_create` | Create a new folder | `folder_name`, `parent_id?` |
+| `folder_update` | Update folder properties | `folder_id`, `folder_name?`, `description?` |
+| `folder_rename` | Rename a folder | `folder_id`, `new_name` |
+
+### Item Management
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
 | `item_search` | Search items by keyword | `keyword`, `limit?` |
 | `item_info` | Get detailed item information | `item_id` |
+| `item_by_folder` | Get items in a specific folder | `folder_id`, `limit?` |
+| `item_update_tags` | Update item tags | `item_id`, `tags`, `mode?` |
+| `item_update_metadata` | Update item metadata | `item_id`, `annotation?`, `star?` |
+| `item_delete` | Move item to trash | `item_id` |
+
+### Image Processing
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `image_info` | Get image file paths and metadata | `item_id` |
+| `image_base64` | Get image as base64 data | `item_id`, `use_thumbnail?` |
+| `image_analyze` | Set up image for AI analysis | `item_id`, `analysis_prompt`, `use_thumbnail?` |
+| `thumbnail_path` | Get thumbnail file path | `item_id` |
+
+### Library Management
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
 | `library_info` | Get Eagle library information | None |
+
+### Direct API Tools (Advanced)
+
+> 💡 **Note**: Enable with `EXPOSE_DIRECT_API_TOOLS=true` for low-level Eagle API access (17 additional tools)
+
+When enabled, provides direct access to Eagle's REST API endpoints for advanced users and developers.
 
 ## 📁 Project Structure
 
 ```
 eagle-mcp-server/
 ├── main.py                 # Main MCP server implementation
-├── run.bat                 # Server startup script
+├── run.bat                 # Server startup script (Windows)
 ├── eagle_client.py         # Eagle API client
 ├── config.py              # Configuration management
 ├── handlers/              # Tool handlers
-│   ├── folder.py          # Folder operations
-│   ├── item.py            # Item operations
-│   └── library.py         # Library operations
+│   ├── base.py            # Base handler class
+│   ├── folder.py          # Folder operations (6 tools)
+│   ├── item.py            # Item operations (6 tools)
+│   ├── library.py         # Library operations (1 tool)
+│   ├── image.py           # Image processing (4 tools)
+│   └── direct_api.py      # Direct API access (17 tools)
+├── utils/                 # Utility functions
+│   ├── __init__.py
+│   └── encoding.py        # Text encoding utilities
 ├── schemas/               # Pydantic schemas
 ├── tests/                 # Unit tests
+├── debug/                 # Debug scripts
 ├── docs/                  # Documentation
 └── scripts/               # Setup scripts
 ```
@@ -134,16 +193,25 @@ uv run python -m pytest tests/
 Run basic functionality test:
 
 ```bash
+# Basic health check
 uv run python -c "from eagle_client import EagleClient; import asyncio; asyncio.run(EagleClient().health_check())"
+
+# Test with Direct API tools enabled
+EXPOSE_DIRECT_API_TOOLS=true uv run python debug/simple_test.py
+
+# Run comprehensive test
+uv run python test_v3.py
 ```
 
 ## 🐛 Troubleshooting
 
 ### Common Issues
 
-1. **Connection refused**: Ensure Eagle App is running on the configured port
+1. **Connection refused**: Ensure Eagle App is running on the configured port (default: 41595)
 2. **Module not found**: Check Python path and virtual environment activation
 3. **Permission denied**: Verify file permissions on startup scripts
+4. **Japanese text issues**: Ensure UTF-8 encoding is properly configured
+5. **Direct API tools not visible**: Set `EXPOSE_DIRECT_API_TOOLS=true` in your environment
 
 See [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for detailed solutions.
 
@@ -177,8 +245,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 If you encounter any issues or have questions:
 
 1. Check the [troubleshooting guide](docs/TROUBLESHOOTING.md)
-2. Search [existing issues](https://github.com/yourusername/eagle-mcp-server/issues)
-3. Create a [new issue](https://github.com/yourusername/eagle-mcp-server/issues/new)
+2. Search [existing issues](https://github.com/shingo1228/eagle-mcp-server/issues)
+3. Create a [new issue](https://github.com/shingo1228/eagle-mcp-server/issues/new)
 
 ---
 
